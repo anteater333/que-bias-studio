@@ -1,0 +1,9 @@
+{
+  "nameKo": "넬",
+  "nameEn": "NELL",
+  "description": "샘플 카드 (동작 확인용 더미 데이터)",
+  "recommendedTracks": [
+    { "title": "샘플 트랙 1", "url": "https://example.com/track-1" },
+    { "title": "샘플 트랙 2" }
+  ]
+}
