@@ -1,6 +1,6 @@
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
-import { CARD_FILES, CARD_VIEWBOX, META_FILE, MOTION_WARN_BYTES, SLUG_PATTERN } from './config.js'
+import { CARD_FILES, CARD_VIEWBOX, META_FILE, MOTION_WARN_BYTES, OPTIONAL_CARD_FILES, SLUG_PATTERN } from './config.js'
 
 const isNonEmptyString = (v) => typeof v === 'string' && v.trim().length > 0
 
@@ -60,7 +60,10 @@ export function validateCard(contentDir, slug) {
     errors.push('폴더명(slug)은 소문자/숫자/하이픈만 쓸 수 있고 소문자나 숫자로 시작해야 해요')
   }
 
-  for (const file of [...Object.values(CARD_FILES), META_FILE]) {
+  const requiredFiles = Object.entries(CARD_FILES)
+    .filter(([key]) => !OPTIONAL_CARD_FILES.has(key))
+    .map(([, file]) => file)
+  for (const file of [...requiredFiles, META_FILE]) {
     if (!existsSync(join(dir, file))) errors.push(`${file} 파일이 없어요`)
   }
 

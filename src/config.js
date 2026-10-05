@@ -18,7 +18,7 @@ loadEnvFile(resolve(process.cwd(), '.env.local'))
 
 export const MANIFEST_VERSION = 1
 
-// 카드 폴더 안에 반드시 있어야 하는 파일 (manifest 키 -> 파일명)
+// 카드 폴더 안의 파일 (manifest 키 -> 파일명). OPTIONAL_CARD_FILES 에 없는 건 필수
 export const CARD_FILES = {
   deco: 'deco.svg',
   title: 'title.svg',
@@ -26,6 +26,9 @@ export const CARD_FILES = {
   motion: 'image-motion.webp',
   detail: 'image-detail.webp',
 }
+
+// 없어도 되는 파일. 없으면 manifest 에서 해당 키가 빠진다
+export const OPTIONAL_CARD_FILES = new Set(['deco'])
 
 export const META_FILE = 'meta.json'
 export const SLUG_PATTERN = /^[a-z0-9][a-z0-9-]*$/

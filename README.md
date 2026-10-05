@@ -9,7 +9,7 @@ Que Bias Studio는 [Que](https://github.com/anteater333/que-remastered) 서비�
 ```
 bias/                     # 루트 경로
 -- {artist}/              # 각 아티스트마다 폴더로 구분
----- deco.svg             # 이미지 내 꾸밈 효과를 원할 경우 (거의 안쓸듯)
+---- deco.svg             # [선택] 이미지 내 꾸밈 효과를 원할 경우 (거의 안쓸듯)
 ---- image-detail.webp    # 카드 상세 진입 시 이미지 (가로 비율)
 ---- image-motion.webp    # 카드 포커스 시 움직이는 이미지
 ---- image-still.webp     # 카드 포커스 아닐 시 정지 이미지
@@ -53,7 +53,9 @@ bias/                     # 루트 경로
 
 ### svg 레이어
 
-`deco.svg`, `title.svg` 는 Que 카드와 같은 좌표계(`viewBox="0 0 200 200"`)로 만들어야 이미지 위 위치가 맞습니다. 다르면 검증 시 경고가 나옵니다.
+`deco.svg`(선택), `title.svg` 는 Que 카드와 같은 좌표계(`viewBox="0 0 200 200"`)로 만들어야 이미지 위 위치가 맞습니다. 다르면 검증 시 경고가 나옵니다.
+
+`deco.svg` 가 없으면 manifest 의 해당 카드에 `deco` 키가 빠집니다.
 
 ## 최애 제작소 페이지 (로컬 편집기)
 

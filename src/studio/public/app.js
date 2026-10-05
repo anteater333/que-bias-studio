@@ -21,6 +21,8 @@ async function api(path, options) {
   return body
 }
 
+const fileName = (key) => state.card.files[key].name
+
 const fileUrl = (key) => {
   const file = state.card.files[key]
   return file.version ? `/api/cards/${state.slug}/files/${key}?v=${file.version}` : null
@@ -185,12 +187,12 @@ window.addEventListener('beforeunload', (e) => {
 
 // ---------- 미리보기 ----------
 
-/** 이미지를 넣되, 파일이 깨져서 못 읽으면 안내 문구로 바꾼다. */
-function imageInto(container, src, missingText) {
+/** 이미지를 넣되, 파일이 없거나 깨져서 못 읽으면 안내 문구로 바꾼다. */
+function imageInto(container, src, name) {
   container.classList.remove('missing')
   if (!src) {
     container.classList.add('missing')
-    container.textContent = missingText
+    container.textContent = `${name} 없음`
     return
   }
   const img = document.createElement('img')
@@ -201,7 +203,7 @@ function imageInto(container, src, missingText) {
   img.decode().catch(() => {
     if (!img.isConnected) return
     container.classList.add('missing')
-    container.textContent = `파일을 읽을 수 없어요: ${missingText.split(' ')[0]}`
+    container.textContent = `파일을 읽을 수 없어요: ${name}`
   })
 }
 
@@ -230,9 +232,16 @@ function renderCards() {
     const isLead = el.dataset.lead === 'true'
     const imageLayer = document.createElement('div')
     imageLayer.className = 'image-layer'
-    // Que 와 같은 규칙: 포커스일 때 motion, 없으면 still 유지
-    const motion = isLead && fileUrl('motion')
-    imageInto(imageLayer, motion || fileUrl('still'), `${motion ? 'image-motion.webp' : 'image-still.webp'} 없음`)
+    // Que 와 같은 규칙: 포커스일 때 motion, 없으면 still 로 대신 그린다.
+    // 다만 이 프로젝트에선 motion 이 필수라서, 대신 그린 경우엔 빠졌다는 걸 따로 알려준다
+    const motion = fileUrl('motion')
+    const still = fileUrl('still')
+    const fallback = isLead && !motion && still
+    if (isLead && !fallback) imageInto(imageLayer, motion, fileName('motion'))
+    else imageInto(imageLayer, still, fileName('still'))
+    el.parentElement.querySelector('.card-note').textContent = fallback
+      ? `${fileName('motion')} 없음 (still 로 표시 중)`
+      : ''
     const bleed = document.createElement('div')
     bleed.className = 'bleed-guide'
     el.replaceChildren(imageLayer, svgLayer(svg.deco), svgLayer(svg.title), bleed)
@@ -258,7 +267,7 @@ function renderDetail(meta) {
   const detail = $('detail')
   const hero = document.createElement('div')
   hero.className = 'detail-hero'
-  imageInto(hero, state.card && fileUrl('detail'), 'image-detail.webp 없음')
+  if (state.card) imageInto(hero, fileUrl('detail'), fileName('detail'))
 
   const body = document.createElement('div')
   body.className = 'detail-body'

@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto'
-import { copyFileSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { extname, basename, join } from 'node:path'
 import { CARD_FILES, MANIFEST_VERSION } from './config.js'
 import { validateAll } from './validate.js'
@@ -28,6 +28,7 @@ export function build({ contentDir, outDir }) {
     const files = {}
     for (const [key, file] of Object.entries(CARD_FILES)) {
       const src = join(contentDir, slug, file)
+      if (!existsSync(src)) continue // 검증을 통과했으니 없는 건 선택 파일뿐
       const name = hashedName(file, readFileSync(src))
       copyFileSync(src, join(cardOut, name))
       files[key] = `${slug}/${name}`

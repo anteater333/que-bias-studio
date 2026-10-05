@@ -201,6 +201,16 @@ main {
   text-align: center;
 }
 
+.card-note {
+  margin: 2px 0 0;
+  color: var(--warn);
+  font-size: 11px;
+}
+
+.card-note:empty {
+  display: none;
+}
+
 .card-stage figcaption {
   margin-top: calc(var(--card-bleed) + 4px);
   color: var(--muted);
