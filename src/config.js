@@ -24,10 +24,14 @@ export const CARD_FILES = {
   title: 'title.svg',
   still: 'image-still.webp',
   motion: 'image-motion.webp',
+  detail: 'image-detail.webp',
 }
 
 export const META_FILE = 'meta.json'
 export const SLUG_PATTERN = /^[a-z0-9][a-z0-9-]*$/
+
+// Que 의 BiasCard 가 deco/title 레이어에 쓰는 좌표계 (que-remastered BIAS_CARD_VIEWBOX 와 맞춘다)
+export const CARD_VIEWBOX = '0 0 200 200'
 
 // 움짤 용량 경고 기준 (byte). 넘으면 경고만 하고 빌드는 계속함
 export const MOTION_WARN_BYTES = 6 * 1024 * 1024
@@ -47,5 +51,6 @@ export function getConfig({ requireTarget = false } = {}) {
     contentDir: resolve(contentDir),
     outDir: resolve(process.env.BIAS_OUT_DIR || './dist'),
     deployTarget,
+    studioPort: Number(process.env.BIAS_STUDIO_PORT) || 4000,
   }
 }

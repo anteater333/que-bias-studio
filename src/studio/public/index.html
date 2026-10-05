@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Que 최애 제작소</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css" />
+    <link rel="stylesheet" href="/style.css" />
+    <script type="module" src="/app.js"></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <h1>Que 최애 제작소</h1>
+      <span class="content-dir" id="content-dir"></span>
+    </header>
+
+    <div class="layout">
+      <nav class="sidebar" aria-label="카드 목록">
+        <ul id="card-list"></ul>
+      </nav>
+
+      <main id="main">
+        <p class="empty" id="empty">왼쪽에서 카드를 골라주세요.</p>
+
+        <div id="workspace" hidden>
+          <div class="workspace-head">
+            <h2 id="card-slug"></h2>
+            <span class="external-notice" id="external-notice" hidden>
+              파일이 밖에서 바뀌었어요.
+              <button type="button" id="reload-meta">다시 불러오기</button>
+            </span>
+          </div>
+
+          <section class="previews" aria-label="미리보기">
+            <div class="panel">
+              <div class="panel-head">
+                <h3>카드</h3>
+                <label><input type="checkbox" id="show-bleed" checked /> bleed 영역</label>
+                <label><input type="checkbox" id="zoom" /> 2배</label>
+              </div>
+              <div class="card-stage" id="card-stage">
+                <figure>
+                  <div class="bias-card" data-lead="false"></div>
+                  <figcaption>기본 (still)</figcaption>
+                </figure>
+                <figure>
+                  <div class="bias-card" data-lead="true"></div>
+                  <figcaption>포커스 (motion)</figcaption>
+                </figure>
+              </div>
+            </div>
+
+            <div class="panel">
+              <div class="panel-head">
+                <h3>디테일</h3>
+                <span class="hint">임시 레이아웃</span>
+              </div>
+              <div class="phone">
+                <div class="detail" id="detail"></div>
+              </div>
+            </div>
+          </section>
+
+          <section class="issues" id="issues" aria-label="검사 결과"></section>
+
+          <form class="editor" id="meta-form" autocomplete="off">
+            <div class="field-row">
+              <label class="field">
+                <span>한글 이름 <code>nameKo</code></span>
+                <input name="nameKo" required />
+              </label>
+              <label class="field">
+                <span>영문 이름 <code>nameEn</code></span>
+                <input name="nameEn" required />
+              </label>
+            </div>
+
+            <div class="field">
+              <span>설명 <code>description</code></span>
+              <div class="rte">
+                <button type="button" class="source-toggle" id="toggle-source" aria-pressed="false">HTML 보기</button>
+                <div id="rte"><p class="rte-loading">에디터 불러오는 중...</p></div>
+                <textarea class="rte-source" id="rte-source" spellcheck="false" hidden></textarea>
+              </div>
+            </div>
+
+            <div class="field">
+              <span>추천 트랙 <code>recommendedTracks</code></span>
+              <ol class="link-list" id="tracks" data-url-placeholder="https://... (선택)"></ol>
+              <button type="button" class="ghost" data-add="tracks">+ 트랙 추가</button>
+            </div>
+
+            <div class="field">
+              <span>추천 영상 <code>recommendedVideos</code></span>
+              <ol class="link-list" id="videos" data-url-placeholder="https://www.youtube.com/watch?v=... (필수)"></ol>
+              <button type="button" class="ghost" data-add="videos">+ 영상 추가</button>
+            </div>
+
+            <div class="save-bar">
+              <span class="save-status" id="save-status"></span>
+              <button type="submit" class="primary" id="save">meta.json 저장 <kbd>⌘S</kbd></button>
+            </div>
+          </form>
+        </div>
+      </main>
+    </div>
+
+    <template id="link-item-template">
+      <li class="link-item">
+        <input name="title" placeholder="제목 (필수)" />
+        <input name="url" />
+        <button type="button" data-action="up" title="위로">↑</button>
+        <button type="button" data-action="down" title="아래로">↓</button>
+        <button type="button" data-action="remove" title="삭제">✕</button>
+      </li>
+    </template>
+  </body>
+</html>

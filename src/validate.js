@@ -1,16 +1,28 @@
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
-import { CARD_FILES, META_FILE, MOTION_WARN_BYTES, SLUG_PATTERN } from './config.js'
+import { CARD_FILES, CARD_VIEWBOX, META_FILE, MOTION_WARN_BYTES, SLUG_PATTERN } from './config.js'
 
 const isNonEmptyString = (v) => typeof v === 'string' && v.trim().length > 0
 
-function validateMeta(meta) {
+// description 은 리치 텍스트 에디터가 만든 HTML. 앱에서 그대로 렌더링하므로 스크립트가 섞이면 안 됨
+const UNSAFE_HTML = /<\s*(script|style|iframe|object|embed)\b|\son\w+\s*=|javascript:/i
+
+/** meta.json 내용을 검사해서 에러 메시지 배열을 돌려준다. */
+export function validateMeta(meta) {
   const errors = []
   if (typeof meta !== 'object' || meta === null || Array.isArray(meta)) {
     return ['meta.json 최상위는 객체여야 해요']
   }
   for (const key of ['nameKo', 'nameEn', 'description']) {
     if (!isNonEmptyString(meta[key])) errors.push(`meta.${key} 는 비어있지 않은 문자열이어야 해요`)
+  }
+  if (typeof meta.description === 'string') {
+    if (!meta.description.replace(/<[^>]*>|&nbsp;/g, '').trim()) {
+      errors.push('meta.description 에 글자가 하나도 없어요')
+    }
+    if (UNSAFE_HTML.test(meta.description)) {
+      errors.push('meta.description 에 script/이벤트 핸들러 같은 허용되지 않는 HTML 이 있어요')
+    }
   }
   if (!Array.isArray(meta.recommendedTracks)) {
     errors.push('meta.recommendedTracks 는 배열이어야 해요')
@@ -21,6 +33,19 @@ function validateMeta(meta) {
         errors.push(`recommendedTracks[${i}].url 은 http(s) 주소여야 해요`)
       }
     })
+  }
+  // 추천 영상은 선택 필드. 영상은 링크가 없으면 의미가 없어서 url 까지 필수
+  if (meta.recommendedVideos !== undefined) {
+    if (!Array.isArray(meta.recommendedVideos)) {
+      errors.push('meta.recommendedVideos 는 배열이어야 해요')
+    } else {
+      meta.recommendedVideos.forEach((v, i) => {
+        if (!isNonEmptyString(v?.title)) errors.push(`recommendedVideos[${i}].title 이 필요해요`)
+        if (typeof v?.url !== 'string' || !/^https?:\/\//.test(v.url)) {
+          errors.push(`recommendedVideos[${i}].url 은 http(s) 주소여야 해요`)
+        }
+      })
+    }
   }
   return errors
 }
@@ -49,19 +74,15 @@ export function validateCard(contentDir, slug) {
     }
   }
 
-  // 세 레이어가 같은 좌표계(viewBox)를 공유하므로 svg 에는 viewBox 가 있어야 함
-  const viewBoxes = {}
+  // 이미지 위에 겹쳐지는 svg 레이어는 Que 카드와 같은 좌표계(viewBox)를 써야 위치가 맞음
   for (const key of ['deco', 'title']) {
     const file = join(dir, CARD_FILES[key])
     if (!existsSync(file)) continue
     const m = readFileSync(file, 'utf8').match(/viewBox\s*=\s*["']([^"']+)["']/)
     if (!m) errors.push(`${CARD_FILES[key]} 에 viewBox 가 없어요`)
-    else viewBoxes[key] = m[1].trim().replace(/\s+/g, ' ')
-  }
-  if (viewBoxes.deco && viewBoxes.title && viewBoxes.deco !== viewBoxes.title) {
-    warnings.push(
-      `deco.svg(${viewBoxes.deco}) 와 title.svg(${viewBoxes.title}) 의 viewBox 가 달라요 (의도한 게 맞나요?)`,
-    )
+    else if (m[1].trim().replace(/[\s,]+/g, ' ') !== CARD_VIEWBOX) {
+      warnings.push(`${CARD_FILES[key]} 의 viewBox(${m[1].trim()}) 가 카드 기준(${CARD_VIEWBOX}) 과 달라요`)
+    }
   }
 
   const motion = join(dir, CARD_FILES.motion)

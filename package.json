@@ -8,6 +8,7 @@
     "node": ">=20"
   },
   "scripts": {
+    "studio": "node src/cli.js studio",
     "validate": "node src/cli.js validate",
     "build": "node src/cli.js build",
     "deploy": "node src/cli.js deploy"
