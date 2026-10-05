@@ -4,10 +4,12 @@ import { extname, basename, join } from 'node:path'
 import { CARD_FILES, MANIFEST_VERSION } from './config.js'
 import { validateAll } from './validate.js'
 
+/** 배포 파일명에 붙는 내용 해시. pull 할 때 로컬 파일과 비교하는 데도 쓴다. */
+export const contentHash = (buf) => createHash('sha256').update(buf).digest('hex').slice(0, 8)
+
 function hashedName(file, buf) {
-  const hash = createHash('sha256').update(buf).digest('hex').slice(0, 8)
   const ext = extname(file)
-  return `${basename(file, ext)}.${hash}${ext}`
+  return `${basename(file, ext)}.${contentHash(buf)}${ext}`
 }
 
 /**

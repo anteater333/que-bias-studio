@@ -11,6 +11,7 @@
     "studio": "node src/cli.js studio",
     "validate": "node src/cli.js validate",
     "build": "node src/cli.js build",
-    "deploy": "node src/cli.js deploy"
+    "deploy": "node src/cli.js deploy",
+    "pull": "node src/cli.js pull"
   }
 }

@@ -1,14 +1,4 @@
-import { spawnSync } from 'node:child_process'
-
-function rsync(args) {
-  const r = spawnSync('rsync', args, { stdio: 'inherit' })
-  if (r.error) {
-    throw new Error(
-      r.error.code === 'ENOENT' ? 'rsync 가 설치되어 있지 않아요.' : `rsync 실행 실패: ${r.error.message}`,
-    )
-  }
-  if (r.status !== 0) throw new Error(`rsync 가 종료 코드 ${r.status} 로 실패했어요.`)
-}
+import { remoteDir, rsync } from './remote.js'
 
 /**
  * 해시 파일을 먼저, manifest.json 을 마지막에 올린다.
@@ -17,7 +7,7 @@ function rsync(args) {
  */
 export function deploy({ outDir, deployTarget, dryRun }) {
   const base = ['-avz', ...(dryRun ? ['--dry-run'] : [])]
-  const src = outDir.endsWith('/') ? outDir : `${outDir}/`
+  const src = remoteDir(outDir)
 
   console.log(`\n[1/2] 카드 파일 업로드${dryRun ? ' (dry-run)' : ''}`)
   rsync([...base, '--exclude', 'manifest.json', src, deployTarget])
