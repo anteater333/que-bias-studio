@@ -1,4 +1,4 @@
-import { createReadStream, existsSync, readdirSync, readFileSync, statSync, watch, writeFileSync } from 'node:fs'
+import { createReadStream, existsSync, mkdirSync, readdirSync, readFileSync, statSync, watch, writeFileSync } from 'node:fs'
 import { createServer } from 'node:http'
 import { extname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -99,7 +99,12 @@ function createWatcher(contentDir) {
 }
 
 export function startStudio({ contentDir, studioPort }) {
-  listSlugs(contentDir) // 경로가 없으면 여기서 바로 에러
+  // 원재료 폴더는 git 에 없어서 처음엔 비어있는 게 정상. studio 에서만 만들어준다
+  // (validate/build 에선 경로 오타일 가능성이 커서 그대로 에러를 낸다)
+  if (!existsSync(contentDir)) {
+    mkdirSync(contentDir, { recursive: true })
+    console.log(`카드 폴더가 없어서 새로 만들었어요: ${contentDir}`)
+  }
   const handleEvents = createWatcher(contentDir)
   const publicFiles = new Set(readdirSync(PUBLIC_DIR))
 
