@@ -10,6 +10,7 @@ const state = {
   slug: null,
   card: null, // 서버에서 받은 카드 정보
   savedSnapshot: null, // 마지막으로 저장/로드한 meta (dirty 비교용)
+  deployTarget: null, // BIAS_DEPLOY_TARGET (없으면 배포/받기 불가)
 }
 
 // ---------- API ----------
@@ -31,8 +32,9 @@ const fileUrl = (key) => {
 // ---------- 카드 목록 ----------
 
 async function loadCardList() {
-  const { contentDir, cards } = await api('/api/cards')
+  const { contentDir, deployTarget, cards } = await api('/api/cards')
   $('content-dir').textContent = contentDir
+  state.deployTarget = deployTarget
   const list = $('card-list')
   list.replaceChildren(
     ...cards.map(({ slug, errors, warnings }) => {
@@ -281,6 +283,123 @@ $('new-card-form').addEventListener('submit', async (e) => {
     $('new-card-error').textContent = err.message
     $('new-card-error').hidden = false
   }
+})
+
+// ---------- 배포 / 받기 ----------
+
+const COMMANDS = {
+  deploy: {
+    title: '배포',
+    desc: '로컬 카드 전체를 검증하고 빌드해서 서버로 올려요.',
+    force: '서버에만 있는 카드가 빠져도 배포 (--force)',
+  },
+  pull: {
+    title: '서버에서 받기',
+    desc: '서버에 배포된 카드를 받아요. 기본은 로컬에 없는 카드만 받고, 로컬과 다른 카드는 건너뛰어요.',
+    force: '로컬과 다른 카드도 서버 기준으로 덮어쓰기 (--force)',
+  },
+}
+
+const commandForm = $('command-form')
+let currentCommand = null
+let commandRunning = false
+
+function openCommand(name) {
+  const info = COMMANDS[name]
+  currentCommand = name
+  $('command-title').textContent = info.title
+  $('command-desc').textContent = info.desc
+  $('command-force-label').textContent = info.force
+  $('command-target').textContent = state.deployTarget ?? '(설정 안 됨)'
+  commandForm.reset()
+  $('command-log').hidden = true
+  $('command-log').replaceChildren()
+  $('command-status').textContent = ''
+  $('command-status').className = 'command-status'
+  $('command-run').disabled = !state.deployTarget
+  // 배포는 디스크에 저장된 파일 기준이라 작성 중인 내용은 안 들어간다
+  const warning = !state.deployTarget
+    ? 'BIAS_DEPLOY_TARGET 이 설정되지 않았어요. .env.local 을 확인하고 스튜디오를 다시 켜주세요.'
+    : name === 'deploy' && isDirty()
+      ? 'meta.json 에 저장하지 않은 변경사항이 있어요. 저장한 내용만 배포돼요.'
+      : null
+  $('command-warning').textContent = warning ?? ''
+  $('command-warning').hidden = !warning
+  $('command-dialog').showModal()
+}
+
+function appendLog(text, stream) {
+  const log = $('command-log')
+  const atBottom = log.scrollHeight - log.scrollTop - log.clientHeight < 24
+  const span = document.createElement('span')
+  if (stream === 'err') span.className = 'err'
+  span.textContent = text
+  log.append(span)
+  if (atBottom) log.scrollTop = log.scrollHeight
+}
+
+function setCommandRunning(running) {
+  commandRunning = running
+  $('command-run').disabled = running
+  $('command-close').disabled = running
+  for (const input of commandForm.querySelectorAll('input')) input.disabled = running
+  for (const button of document.querySelectorAll('[data-command]')) button.disabled = running
+}
+
+async function runCommand() {
+  const name = currentCommand
+  const options = { dryRun: commandForm.dryRun.checked, force: commandForm.force.checked }
+  $('command-log').hidden = false
+  $('command-log').replaceChildren()
+  $('command-status').className = 'command-status'
+  $('command-status').textContent = '실행 중...'
+  setCommandRunning(true)
+  let exit = null
+  try {
+    const res = await fetch(`/api/commands/${name}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(options),
+    })
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}))
+      throw new Error(body.errors?.join('\n') ?? body.error ?? `HTTP ${res.status}`)
+    }
+    // 한 줄에 JSON 하나씩 온다. 청크가 줄 중간에서 잘릴 수 있어서 남은 조각은 다음 청크와 합친다
+    const reader = res.body.pipeThrough(new TextDecoderStream()).getReader()
+    let buffer = ''
+    for (;;) {
+      const { value, done } = await reader.read()
+      if (done) break
+      buffer += value
+      const lines = buffer.split('\n')
+      buffer = lines.pop()
+      for (const line of lines.filter(Boolean)) {
+        const msg = JSON.parse(line)
+        if ('exit' in msg) exit = msg.exit
+        else appendLog(msg.text, msg.stream)
+      }
+    }
+    if (exit === null) throw new Error('스튜디오와 연결이 끊겼어요. 터미널에서 결과를 확인해주세요.')
+  } catch (e) {
+    appendLog(`\n${e.message}\n`, 'err')
+  } finally {
+    setCommandRunning(false)
+  }
+  const ok = exit === 0
+  $('command-status').textContent = ok ? (options.dryRun ? '미리보기 완료' : '완료') : '실패'
+  $('command-status').classList.add(ok ? 'ok' : 'failed')
+  // 받은 카드는 watcher 가 알려주지만, 새 폴더가 생겼을 수 있으니 목록은 한 번 더 갱신
+  if (name === 'pull') loadCardList()
+}
+
+for (const button of document.querySelectorAll('[data-command]')) {
+  button.addEventListener('click', () => openCommand(button.dataset.command))
+}
+$('command-run').addEventListener('click', runCommand)
+// 실행 중에는 Esc 로 닫히지 않게 (닫아도 명령은 계속 돌지만 결과를 놓친다)
+$('command-dialog').addEventListener('cancel', (e) => {
+  if (commandRunning) e.preventDefault()
 })
 
 // ---------- 미리보기 ----------

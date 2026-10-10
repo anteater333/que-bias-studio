@@ -12,7 +12,30 @@
     <header class="topbar">
       <h1>Que 최애 제작소</h1>
       <span class="content-dir" id="content-dir"></span>
+      <div class="commands">
+        <button type="button" class="ghost" data-command="pull">서버에서 받기</button>
+        <button type="button" class="ghost" data-command="deploy">배포</button>
+      </div>
     </header>
+
+    <dialog class="command-dialog" id="command-dialog">
+      <form method="dialog" id="command-form">
+        <h2 id="command-title"></h2>
+        <p class="command-desc" id="command-desc"></p>
+        <p class="command-target">대상 <code id="command-target"></code></p>
+        <p class="command-warning" id="command-warning" hidden></p>
+        <div class="command-options">
+          <label><input type="checkbox" name="dryRun" /> <span>미리보기만 (<code>--dry-run</code>)</span></label>
+          <label><input type="checkbox" name="force" /> <span id="command-force-label"></span></label>
+        </div>
+        <pre class="command-log" id="command-log" hidden></pre>
+        <div class="command-actions">
+          <span class="command-status" id="command-status"></span>
+          <button type="submit" value="close" class="ghost" id="command-close">닫기</button>
+          <button type="button" class="primary" id="command-run">실행</button>
+        </div>
+      </form>
+    </dialog>
 
     <div class="layout">
       <nav class="sidebar" aria-label="카드 목록">

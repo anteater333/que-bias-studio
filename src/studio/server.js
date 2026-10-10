@@ -14,6 +14,7 @@ import { extname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { CARD_FILES, META_FILE, OPTIONAL_CARD_FILES, SLUG_PATTERN } from '../config.js'
 import { listSlugs, validateCard, validateMeta } from '../validate.js'
+import { createCommandRunner } from './commands.js'
 
 const PUBLIC_DIR = fileURLToPath(new URL('./public', import.meta.url))
 const MAX_BODY_BYTES = 1024 * 1024
@@ -129,7 +130,7 @@ function createWatcher(contentDir) {
   }
 }
 
-export function startStudio({ contentDir, studioPort }) {
+export function startStudio({ contentDir, deployTarget, studioPort }) {
   // 원재료 폴더는 git 에 없어서 처음엔 비어있는 게 정상. studio 에서만 만들어준다
   // (validate/build 에선 경로 오타일 가능성이 커서 그대로 에러를 낸다)
   if (!existsSync(contentDir)) {
@@ -137,6 +138,7 @@ export function startStudio({ contentDir, studioPort }) {
     console.log(`카드 폴더가 없어서 새로 만들었어요: ${contentDir}`)
   }
   const handleEvents = createWatcher(contentDir)
+  const runCommand = createCommandRunner()
   const publicFiles = new Set(readdirSync(PUBLIC_DIR))
   // 다른 사이트가 DNS 리바인딩/폼 전송으로 로컬 API 를 건드리지 못하게 한다
   const allowedHosts = new Set([`localhost:${studioPort}`, `127.0.0.1:${studioPort}`])
@@ -178,7 +180,18 @@ export function startStudio({ contentDir, studioPort }) {
           const { errors, warnings } = validateCard(contentDir, slug)
           return { slug, errors: errors.length, warnings: warnings.length }
         })
-        return sendJson(res, 200, { contentDir, cards })
+        return sendJson(res, 200, { contentDir, deployTarget: deployTarget || null, cards })
+      }
+
+      if (parts[1] === 'commands' && parts.length === 3 && req.method === 'POST') {
+        let options
+        try {
+          options = JSON.parse(await readBody(req))
+        } catch {
+          return sendJson(res, 400, { errors: ['요청 본문이 올바른 JSON 이 아니에요'] })
+        }
+        const rejected = runCommand(parts[2], options, res)
+        return rejected && sendJson(res, rejected.status, rejected.body)
       }
 
       if (parts[1] === 'cards' && parts.length === 2 && req.method === 'POST') {

@@ -400,6 +400,121 @@ main {
   color: var(--warn);
 }
 
+/* ---------- 배포 / 받기 ---------- */
+
+.commands {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+  align-self: center;
+}
+
+.commands button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.command-dialog {
+  width: min(640px, calc(100vw - 32px));
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--text);
+}
+
+.command-dialog::backdrop {
+  background: rgb(0 0 0 / 0.3);
+}
+
+.command-dialog h2 {
+  margin: 0 0 8px;
+  font-size: 18px;
+}
+
+.command-dialog p {
+  margin: 0 0 8px;
+}
+
+.command-desc,
+.command-target {
+  color: var(--muted);
+}
+
+.command-target code {
+  color: var(--text);
+  word-break: break-all;
+}
+
+.command-warning {
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: var(--warn-bg);
+  color: var(--warn);
+}
+
+.command-options {
+  display: grid;
+  gap: 6px;
+  margin: 12px 0;
+}
+
+.command-options label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.command-log {
+  max-height: 50vh;
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  overflow: auto;
+  border-radius: 6px;
+  background: #1c1c1f;
+  color: #e8e8ec;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.command-log .err {
+  color: #ff8a8a;
+}
+
+.command-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.command-actions .ghost {
+  justify-self: auto;
+}
+
+.command-actions button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.command-status {
+  margin-right: auto;
+  color: var(--muted);
+}
+
+.command-status.ok {
+  color: var(--ok);
+  font-weight: 600;
+}
+
+.command-status.failed {
+  color: var(--error);
+  font-weight: 600;
+}
+
 /* ---------- 새 카드 ---------- */
 
 .new-card {
