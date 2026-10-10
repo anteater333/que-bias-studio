@@ -402,6 +402,82 @@ $('command-dialog').addEventListener('cancel', (e) => {
   if (commandRunning) e.preventDefault()
 })
 
+// ---------- 카드 삭제 ----------
+
+const deleteForm = $('delete-form')
+let remoteCheck = 0 // 늦게 도착한 서버 확인 결과가 다른 카드 모달에 덮어쓰지 않도록
+
+function setDeleteRemote(text, level = 'warn') {
+  $('delete-remote').textContent = text
+  $('delete-remote').className = `command-warning ${level}`
+}
+
+async function openDelete() {
+  const slug = state.slug
+  const check = ++remoteCheck
+  deleteForm.reset()
+  $('delete-slug').textContent = slug
+  $('delete-run').disabled = true
+  setDeleteRemote('서버에 배포된 카드인지 확인하는 중...', 'muted')
+  $('delete-dialog').showModal()
+  deleteForm.confirm.focus()
+
+  const { deployed, error } = await api(`/api/cards/${encodeURIComponent(slug)}/remote`).catch((e) => ({
+    deployed: null,
+    error: e.message,
+  }))
+  if (check !== remoteCheck) return
+  if (deployed) {
+    setDeleteRemote(
+      '서버에 배포된 카드예요. 여기서 지워도 서비스에는 그대로 남아요. ' +
+        '서비스에서도 빼려면 삭제 후 배포할 때 --force 를 체크해야 하고, 그 전에 "서버에서 받기"를 하면 이 카드가 다시 내려와요.',
+    )
+  } else if (deployed === false) {
+    setDeleteRemote('서버에 배포된 적 없는 카드예요. 지우면 어디에도 남지 않아요.', 'error')
+  } else {
+    setDeleteRemote(`서버 상태를 확인하지 못했어요 (${error}). 배포된 카드라면 서비스에는 남아 있어요.`)
+  }
+}
+
+async function deleteCard() {
+  const slug = state.slug
+  $('delete-run').disabled = true
+  try {
+    await api(`/api/cards/${encodeURIComponent(slug)}`, { method: 'DELETE' })
+  } catch (e) {
+    setDeleteRemote(`삭제 실패: ${e.message}`, 'error')
+    $('delete-run').disabled = false
+    return
+  }
+  $('delete-dialog').close()
+  // 지운 카드의 작성 중인 내용 때문에 이동 확인창이 뜨지 않도록 상태를 먼저 비운다
+  state.slug = null
+  state.card = null
+  const cards = await loadCardList()
+  const next = cards[0]?.slug
+  if (next) {
+    location.hash = next
+  } else {
+    history.replaceState(null, '', location.pathname)
+    lastHash = ''
+    $('workspace').hidden = true
+    $('empty').hidden = false
+  }
+}
+
+$('delete-card').addEventListener('click', openDelete)
+deleteForm.confirm.addEventListener('input', (e) => {
+  $('delete-run').disabled = e.target.value.trim() !== state.slug
+})
+$('delete-run').addEventListener('click', deleteCard)
+// 입력칸에서 Enter 를 누르면 폼의 첫 submit 버튼(취소)이 눌린 것으로 처리돼서 직접 막는다.
+// 이름을 다 입력한 상태면 삭제
+deleteForm.confirm.addEventListener('keydown', (e) => {
+  if (e.key !== 'Enter' || e.isComposing) return
+  e.preventDefault()
+  if (!$('delete-run').disabled) deleteCard()
+})
+
 // ---------- 미리보기 ----------
 
 /** 이미지를 넣되, 파일이 없거나 깨져서 못 읽으면 안내 문구로 바꾼다. */

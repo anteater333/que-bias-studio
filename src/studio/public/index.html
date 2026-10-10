@@ -57,6 +57,7 @@
               파일이 밖에서 바뀌었어요.
               <button type="button" id="reload-meta">다시 불러오기</button>
             </span>
+            <button type="button" class="ghost danger" id="delete-card">카드 삭제</button>
           </div>
 
           <section class="previews" aria-label="미리보기">
@@ -142,6 +143,24 @@
         </div>
       </main>
     </div>
+
+    <dialog class="command-dialog" id="delete-dialog">
+      <form method="dialog" id="delete-form" autocomplete="off">
+        <h2>카드 삭제</h2>
+        <p class="command-desc">
+          <code id="delete-slug"></code> 폴더를 통째로 지워요. 원재료 폴더는 git 에 없어서 되돌릴 수 없어요.
+        </p>
+        <p class="command-warning" id="delete-remote"></p>
+        <label class="delete-confirm">
+          <span>확인을 위해 카드 이름을 입력해주세요</span>
+          <input name="confirm" spellcheck="false" />
+        </label>
+        <div class="command-actions">
+          <button type="submit" value="cancel" class="ghost">취소</button>
+          <button type="button" class="primary danger" id="delete-run" disabled>삭제</button>
+        </div>
+      </form>
+    </dialog>
 
     <template id="file-item-template">
       <li class="file-item">

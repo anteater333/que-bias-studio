@@ -5,6 +5,7 @@ import {
   readdirSync,
   readFileSync,
   renameSync,
+  rmSync,
   statSync,
   watch,
   writeFileSync,
@@ -13,6 +14,7 @@ import { createServer } from 'node:http'
 import { extname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { CARD_FILES, META_FILE, OPTIONAL_CARD_FILES, SLUG_PATTERN } from '../config.js'
+import { fetchRemoteManifestAsync } from '../remote.js'
 import { listSlugs, validateCard, validateMeta } from '../validate.js'
 import { createCommandRunner } from './commands.js'
 
@@ -215,6 +217,23 @@ export function startStudio({ contentDir, deployTarget, studioPort }) {
 
         if (parts.length === 3 && req.method === 'GET') {
           return sendJson(res, 200, readCard(contentDir, slug))
+        }
+
+        // 원재료 폴더는 git 에 없어서 지우면 되돌릴 수 없다. 확인은 화면에서 slug 를 직접 입력받는 것으로 한다
+        if (parts.length === 3 && req.method === 'DELETE') {
+          rmSync(join(contentDir, slug), { recursive: true })
+          return sendJson(res, 200, { slug })
+        }
+
+        // 삭제 전에 서버에 배포된 카드인지 알려주기 위함. 확인 못 하면 deployed: null
+        if (parts[3] === 'remote' && req.method === 'GET') {
+          if (!deployTarget) return sendJson(res, 200, { deployed: null, error: 'BIAS_DEPLOY_TARGET 이 설정되지 않았어요' })
+          try {
+            const manifest = await fetchRemoteManifestAsync(deployTarget)
+            return sendJson(res, 200, { deployed: Boolean(manifest?.cards.some((c) => c.slug === slug)) })
+          } catch (e) {
+            return sendJson(res, 200, { deployed: null, error: e.message })
+          }
         }
 
         if (parts[3] === 'meta' && req.method === 'PUT') {

@@ -453,6 +453,40 @@ main {
   color: var(--warn);
 }
 
+.command-warning.error {
+  background: var(--error-bg);
+  color: var(--error);
+}
+
+.command-warning.muted {
+  background: var(--bg);
+  color: var(--muted);
+}
+
+#delete-card {
+  margin-left: auto;
+}
+
+.ghost.danger {
+  color: var(--error);
+}
+
+.primary.danger {
+  background: var(--error);
+}
+
+.delete-confirm {
+  display: grid;
+  gap: 4px;
+  margin: 12px 0 16px;
+}
+
+.delete-confirm input {
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
 .command-options {
   display: grid;
   gap: 6px;
