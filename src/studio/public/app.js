@@ -47,7 +47,7 @@ async function loadCardList() {
       return li
     }),
   )
-  if (cards.length === 0) $('empty').textContent = '카드 폴더가 없어요. 카드 폴더 안에 하위 폴더를 만들어주세요.'
+  if (cards.length === 0) $('empty').textContent = '카드가 아직 없어요. 왼쪽 위에서 새 카드를 만들어주세요.'
   return cards
 }
 
@@ -183,6 +183,104 @@ document.addEventListener('keydown', (e) => {
 
 window.addEventListener('beforeunload', (e) => {
   if (isDirty()) e.preventDefault()
+})
+
+// ---------- 파일 업로드 ----------
+
+const formatSize = (bytes) =>
+  bytes >= 1024 * 1024 ? `${(bytes / 1024 / 1024).toFixed(1)}MB` : `${Math.max(1, Math.round(bytes / 1024))}KB`
+
+function renderFiles() {
+  const list = $('file-list')
+  list.replaceChildren(
+    ...Object.entries(state.card.files).map(([key, file]) => {
+      const row = $('file-item-template').content.firstElementChild.cloneNode(true)
+      row.dataset.key = key
+      row.querySelector('.file-name code').textContent = file.name
+      const status = row.querySelector('.file-status')
+      status.textContent = file.size !== null ? formatSize(file.size) : file.optional ? '없음 (선택)' : '없음'
+      status.classList.toggle('missing-required', file.size === null && !file.optional)
+      row.querySelector('.file-action').textContent = file.size !== null ? '바꾸기' : '올리기'
+      row.querySelector('input').accept = file.name.slice(file.name.lastIndexOf('.'))
+      return row
+    }),
+  )
+}
+
+async function upload(key, file) {
+  const { name } = state.card.files[key]
+  const ext = name.slice(name.lastIndexOf('.'))
+  if (!file.name.toLowerCase().endsWith(ext)) return renderIssues([`${name} 자리에는 ${ext} 파일만 올릴 수 있어요`])
+  const slug = state.slug
+  const row = $('file-list').querySelector(`[data-key="${key}"]`)
+  row?.classList.add('uploading')
+  try {
+    const card = await api(`/api/cards/${slug}/files/${key}`, { method: 'PUT', body: file })
+    if (slug !== state.slug) return
+    // 업로드는 meta 를 건드리지 않으니 작성 중인 폼은 그대로 둔다
+    state.card = { ...card, meta: state.card.meta }
+    renderCards()
+    renderFiles()
+    renderIssues()
+    loadCardList()
+  } catch (e) {
+    if (slug === state.slug) renderIssues(e.body?.errors ?? [e.message], '업로드 실패')
+  } finally {
+    row?.classList.remove('uploading')
+  }
+}
+
+$('file-list').addEventListener('change', (e) => {
+  const file = e.target.files?.[0]
+  if (file) upload(e.target.closest('li').dataset.key, file)
+  e.target.value = ''
+})
+
+$('file-list').addEventListener('dragover', (e) => {
+  const row = e.target.closest('.file-item')
+  if (!row) return
+  e.preventDefault()
+  row.classList.add('dragover')
+})
+
+$('file-list').addEventListener('dragleave', (e) => {
+  const row = e.target.closest('.file-item')
+  if (row && !row.contains(e.relatedTarget)) row.classList.remove('dragover')
+})
+
+$('file-list').addEventListener('drop', (e) => {
+  const row = e.target.closest('.file-item')
+  if (!row) return
+  e.preventDefault()
+  row.classList.remove('dragover')
+  const file = e.dataTransfer.files[0]
+  if (file) upload(row.dataset.key, file)
+})
+
+// 줄 밖에 떨어뜨렸을 때 브라우저가 파일을 열어버리지 않도록
+window.addEventListener('dragover', (e) => e.preventDefault())
+window.addEventListener('drop', (e) => e.preventDefault())
+
+// ---------- 새 카드 ----------
+
+$('new-card-form').addEventListener('submit', async (e) => {
+  e.preventDefault()
+  const input = e.target.slug
+  const slug = input.value.trim()
+  try {
+    await api('/api/cards', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ slug }),
+    })
+    $('new-card-error').hidden = true
+    input.value = ''
+    await loadCardList()
+    location.hash = slug
+  } catch (err) {
+    $('new-card-error').textContent = err.message
+    $('new-card-error').hidden = false
+  }
 })
 
 // ---------- 미리보기 ----------
@@ -332,10 +430,10 @@ function renderDetail(meta) {
   detail.replaceChildren(hero, body)
 }
 
-function renderIssues(saveErrors = []) {
+function renderIssues(saveErrors = [], prefix = '저장 실패') {
   const { errors, warnings } = state.card
   const items = [
-    ...saveErrors.map((m) => ['error', `저장 실패: ${m}`]),
+    ...saveErrors.map((m) => ['error', `${prefix}: ${m}`]),
     ...errors.map((m) => ['error', m]),
     ...warnings.map((m) => ['warn', m]),
   ]
@@ -372,6 +470,7 @@ async function openCard(slug) {
     a.toggleAttribute('aria-current', a.getAttribute('href') === `#${slug}`)
   }
   renderCards()
+  renderFiles()
   renderIssues()
   fillForm(state.card.meta)
 }
@@ -396,6 +495,7 @@ async function onExternalChange(slug) {
   const formMatchesFile = JSON.stringify(collectMeta()) === JSON.stringify({ ...card.meta, ...pickFormKeys(card.meta) })
   state.card = { ...card, meta: isDirty() ? state.card.meta : card.meta }
   renderCards()
+  renderFiles()
   renderIssues()
   if (!metaChanged || formMatchesFile) return onFormChange()
   if (isDirty()) $('external-notice').hidden = false
@@ -422,6 +522,7 @@ $('reload-meta').addEventListener('click', async () => {
   state.card = await api(`/api/cards/${state.slug}`)
   $('external-notice').hidden = true
   renderCards()
+  renderFiles()
   renderIssues()
   fillForm(state.card.meta)
 })

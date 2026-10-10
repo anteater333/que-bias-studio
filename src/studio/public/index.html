@@ -16,6 +16,11 @@
 
     <div class="layout">
       <nav class="sidebar" aria-label="카드 목록">
+        <form class="new-card" id="new-card-form" autocomplete="off">
+          <input name="slug" placeholder="새 카드 slug" pattern="[a-z0-9][a-z0-9\-]*" required />
+          <button type="submit" class="ghost">추가</button>
+        </form>
+        <p class="new-card-error" id="new-card-error" hidden></p>
         <ul id="card-list"></ul>
       </nav>
 
@@ -63,6 +68,14 @@
             </div>
           </section>
 
+          <section class="panel files" aria-label="파일">
+            <div class="panel-head">
+              <h3>파일</h3>
+              <span class="hint">끌어다 놓거나 버튼으로 올리면 바로 덮어써요</span>
+            </div>
+            <ul class="file-list" id="file-list"></ul>
+          </section>
+
           <section class="issues" id="issues" aria-label="검사 결과"></section>
 
           <form class="editor" id="meta-form" autocomplete="off">
@@ -106,6 +119,17 @@
         </div>
       </main>
     </div>
+
+    <template id="file-item-template">
+      <li class="file-item">
+        <span class="file-name"><code></code></span>
+        <span class="file-status"></span>
+        <label class="ghost">
+          <span class="file-action"></span>
+          <input type="file" hidden />
+        </label>
+      </li>
+    </template>
 
     <template id="link-item-template">
       <li class="link-item">

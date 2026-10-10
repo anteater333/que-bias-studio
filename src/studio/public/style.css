@@ -400,6 +400,75 @@ main {
   color: var(--warn);
 }
 
+/* ---------- 새 카드 ---------- */
+
+.new-card {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.new-card input {
+  flex: 1;
+  min-width: 0;
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.new-card-error {
+  margin: 0 0 8px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: var(--error-bg);
+  color: var(--error);
+  font-size: 12px;
+}
+
+/* ---------- 파일 ---------- */
+
+.files {
+  max-width: 760px;
+  margin-top: 16px;
+}
+
+.file-list {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.file-item {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 8px;
+  border: 1px dashed transparent;
+  border-radius: 6px;
+}
+
+.file-item.dragover {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+
+.file-item.uploading {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.file-status {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.file-status.missing-required {
+  color: var(--error);
+}
+
 /* ---------- 편집 폼 ---------- */
 
 .editor {
