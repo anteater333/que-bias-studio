@@ -303,6 +303,7 @@ const COMMANDS = {
 const commandForm = $('command-form')
 let currentCommand = null
 let commandRunning = false
+let commandDone = false // 끝난 뒤엔 실행 버튼이 확인(닫기)으로 바뀐다. 실수로 한 번 더 배포하지 않도록
 
 function openCommand(name) {
   const info = COMMANDS[name]
@@ -316,6 +317,10 @@ function openCommand(name) {
   $('command-log').replaceChildren()
   $('command-status').textContent = ''
   $('command-status').className = 'command-status'
+  commandDone = false
+  for (const input of commandForm.querySelectorAll('input')) input.disabled = false
+  $('command-run').textContent = '실행'
+  $('command-close').hidden = false
   $('command-run').disabled = !state.deployTarget
   // 배포는 디스크에 저장된 파일 기준이라 작성 중인 내용은 안 들어간다
   const warning = !state.deployTarget
@@ -385,6 +390,10 @@ async function runCommand() {
     appendLog(`\n${e.message}\n`, 'err')
   } finally {
     setCommandRunning(false)
+    commandDone = true
+    $('command-run').textContent = '확인'
+    $('command-close').hidden = true
+    for (const input of commandForm.querySelectorAll('input')) input.disabled = true
   }
   const ok = exit === 0
   $('command-status').textContent = ok ? (options.dryRun ? '미리보기 완료' : '완료') : '실패'
@@ -396,7 +405,7 @@ async function runCommand() {
 for (const button of document.querySelectorAll('[data-command]')) {
   button.addEventListener('click', () => openCommand(button.dataset.command))
 }
-$('command-run').addEventListener('click', runCommand)
+$('command-run').addEventListener('click', () => (commandDone ? $('command-dialog').close() : runCommand()))
 // 실행 중에는 Esc 로 닫히지 않게 (닫아도 명령은 계속 돌지만 결과를 놓친다)
 $('command-dialog').addEventListener('cancel', (e) => {
   if (commandRunning) e.preventDefault()
