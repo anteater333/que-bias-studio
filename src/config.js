@@ -1,59 +1,61 @@
-import { existsSync, readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
+import { existsSync, readFileSync } from "node:fs";
+import { resolve } from "node:path";
 
 /** .env.local 을 읽어 process.env 에 채운다 (이미 설정된 값이 우선). 의존성 없이 처리. */
 function loadEnvFile(file) {
-  if (!existsSync(file)) return
-  for (const line of readFileSync(file, 'utf8').split('\n')) {
-    const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*?)\s*$/)
-    if (!m || line.trimStart().startsWith('#')) continue
-    const [, key, raw] = m
+  if (!existsSync(file)) return;
+  for (const line of readFileSync(file, "utf8").split("\n")) {
+    const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*?)\s*$/);
+    if (!m || line.trimStart().startsWith("#")) continue;
+    const [, key, raw] = m;
     if (process.env[key] === undefined) {
-      process.env[key] = raw.replace(/^(['"])(.*)\1$/, '$2')
+      process.env[key] = raw.replace(/^(['"])(.*)\1$/, "$2");
     }
   }
 }
 
-loadEnvFile(resolve(process.cwd(), '.env.local'))
+loadEnvFile(resolve(process.cwd(), ".env.local"));
 
-export const MANIFEST_VERSION = 1
+export const MANIFEST_VERSION = 1;
 
 // 카드 폴더 안의 파일 (manifest 키 -> 파일명). OPTIONAL_CARD_FILES 에 없는 건 필수
 export const CARD_FILES = {
-  deco: 'deco.svg',
-  title: 'title.svg',
-  still: 'image-still.webp',
-  motion: 'image-motion.webp',
-  detail: 'image-detail.webp',
-}
+  deco: "deco.svg",
+  title: "title.svg",
+  still: "image-still.webp",
+  motion: "image-motion.webp",
+  detail: "image-detail.webp",
+};
 
 // 없어도 되는 파일. 없으면 manifest 에서 해당 키가 빠진다
-export const OPTIONAL_CARD_FILES = new Set(['deco'])
+export const OPTIONAL_CARD_FILES = new Set(["deco"]);
 
-export const META_FILE = 'meta.json'
-export const SLUG_PATTERN = /^[a-z0-9][a-z0-9-]*$/
+export const META_FILE = "meta.json";
+export const SLUG_PATTERN = /^[a-z0-9][a-z0-9-]*$/;
 
 // Que 의 BiasCard 가 deco/title 레이어에 쓰는 좌표계 (que-remastered BIAS_CARD_VIEWBOX 와 맞춘다)
-export const CARD_VIEWBOX = '0 0 200 200'
+export const CARD_VIEWBOX = "0 0 200 200";
 
 // 움짤 용량 경고 기준 (byte). 넘으면 경고만 하고 빌드는 계속함
-export const MOTION_WARN_BYTES = 6 * 1024 * 1024
+export const MOTION_WARN_BYTES = 25 * 1024 * 1024;
 
 export function getConfig({ requireTarget = false } = {}) {
-  const contentDir = process.env.BIAS_CONTENT_DIR
+  const contentDir = process.env.BIAS_CONTENT_DIR;
   if (!contentDir) {
     throw new Error(
-      'BIAS_CONTENT_DIR 이 설정되지 않았어요. .env.example 을 .env.local 로 복사해서 채워주세요.',
-    )
+      "BIAS_CONTENT_DIR 이 설정되지 않았어요. .env.example 을 .env.local 로 복사해서 채워주세요.",
+    );
   }
-  const deployTarget = process.env.BIAS_DEPLOY_TARGET
+  const deployTarget = process.env.BIAS_DEPLOY_TARGET;
   if (requireTarget && !deployTarget) {
-    throw new Error('BIAS_DEPLOY_TARGET 이 설정되지 않았어요. (.env.local 확인)')
+    throw new Error(
+      "BIAS_DEPLOY_TARGET 이 설정되지 않았어요. (.env.local 확인)",
+    );
   }
   return {
     contentDir: resolve(contentDir),
-    outDir: resolve(process.env.BIAS_OUT_DIR || './dist'),
+    outDir: resolve(process.env.BIAS_OUT_DIR || "./dist"),
     deployTarget,
     studioPort: Number(process.env.BIAS_STUDIO_PORT) || 4000,
-  }
+  };
 }
