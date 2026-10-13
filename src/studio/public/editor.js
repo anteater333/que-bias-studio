@@ -89,13 +89,15 @@ export function sanitizeHtml(html) {
     }
   }
   for (const p of result.querySelectorAll('p p')) p.replaceWith(...p.childNodes)
-  // 내용이 없는 문단(<p></p>, <p><br></p>) 정리
+  // 빈 문단은 사용자가 넣은 빈 줄이므로 <p><br></p> 로 통일해 살린다.
+  // (Quill 2 의 getSemanticHTML 은 빈 줄을 <p></p> 로 내보내는데, 이대로면 렌더링 시 높이가 0 이 됨)
+  // 단, 맨 앞/맨 뒤의 빈 줄은 의미가 없으니 버린다.
+  const isEmptyP = (el) => el?.matches('p') && !el.textContent.trim()
   for (const p of result.querySelectorAll('p')) {
-    if (!p.textContent.trim() && !p.querySelector('br')) p.remove()
+    if (isEmptyP(p)) p.replaceChildren(doc.createElement('br'))
   }
-  while (result.lastElementChild?.matches('p') && !result.lastElementChild.textContent.trim()) {
-    result.lastElementChild.remove()
-  }
+  while (isEmptyP(result.firstElementChild)) result.firstElementChild.remove()
+  while (isEmptyP(result.lastElementChild)) result.lastElementChild.remove()
 
   return result.textContent.trim() ? result.innerHTML : ''
 }
