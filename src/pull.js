@@ -69,17 +69,21 @@ function planCard(contentDir, card) {
  * 서버(BIAS_DEPLOY_TARGET)에 배포된 카드를 원본 폴더 구조로 되돌려 받는다.
  * 기본은 로컬에 없는 카드만 받고, 로컬과 다른 카드는 건너뛴다 (아직 배포 안 한 작업을 덮어쓰지 않도록).
  * force 면 서버 기준으로 덮어쓴다. 로컬에만 있는 카드 폴더는 어느 경우에도 건드리지 않는다.
+ * card(slug) 를 주면 그 카드만 받는다.
  */
-export function pull({ contentDir, deployTarget, dryRun = false, force = false }) {
+export function pull({ contentDir, deployTarget, dryRun = false, force = false, card = null }) {
   console.log(`서버에서 manifest.json 확인 중... (${deployTarget})`)
   const manifest = fetchRemoteManifest(deployTarget)
   if (!manifest) throw new Error('서버에 manifest.json 이 없어요. 아직 한 번도 배포하지 않은 것 같아요.')
 
-  const plans = manifest.cards.map((card) => planCard(contentDir, card))
+  const remoteCards = card ? manifest.cards.filter((c) => c.slug === card) : manifest.cards
+  if (card && !remoteCards.length) throw new Error(`서버에 ${card} 카드가 없어요. 아직 배포하지 않은 카드예요.`)
+
+  const plans = remoteCards.map((c) => planCard(contentDir, c))
   const apply = plans.filter((p) => p.changed.length && (p.isNew || force))
   const skipped = plans.filter((p) => p.changed.length && !p.isNew && !force)
   const remoteSlugs = new Set(plans.map((p) => p.slug))
-  const localOnly = existsSync(contentDir) ? listSlugs(contentDir).filter((s) => !remoteSlugs.has(s)) : []
+  const localOnly = !card && existsSync(contentDir) ? listSlugs(contentDir).filter((s) => !remoteSlugs.has(s)) : []
 
   console.log('')
   for (const p of plans) {
@@ -119,7 +123,7 @@ export function pull({ contentDir, deployTarget, dryRun = false, force = false }
 
   if (skipped.length && !dryRun) {
     console.log(
-      `\n로컬과 다른 카드 ${skipped.length}개는 건너뛰었어요. 서버 기준으로 덮어쓰려면: npm run pull -- --force`,
+      `\n로컬과 다른 카드 ${skipped.length}개는 건너뛰었어요. 서버 기준으로 덮어쓰려면: npm run pull -- ${card ? `--card ${card} ` : ''}--force`,
     )
   }
   return { plans, localOnly }

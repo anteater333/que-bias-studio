@@ -291,11 +291,13 @@ const COMMANDS = {
   deploy: {
     title: '배포',
     desc: '로컬 카드 전체를 검증하고 빌드해서 서버로 올려요.',
+    cardDesc: (slug) => `${slug} 카드만 검증하고 빌드해서 서버로 올려요. 서버의 다른 카드는 그대로 둬요.`,
     force: '서버에만 있는 카드가 빠져도 배포 (--force)',
   },
   pull: {
     title: '서버에서 받기',
     desc: '서버에 배포된 카드를 받아요. 기본은 로컬에 없는 카드만 받고, 로컬과 다른 카드는 건너뛰어요.',
+    cardDesc: (slug) => `서버에 배포된 ${slug} 카드만 받아요. 로컬과 다르면 기본은 건너뛰어요.`,
     force: '로컬과 다른 카드도 서버 기준으로 덮어쓰기 (--force)',
   },
 }
@@ -305,11 +307,21 @@ let currentCommand = null
 let commandRunning = false
 let commandDone = false // 끝난 뒤엔 실행 버튼이 확인(닫기)으로 바뀐다. 실수로 한 번 더 배포하지 않도록
 
+// "이 카드만" 체크 여부에 따라 설명과 옵션을 맞춘다
+function syncCommandOptions() {
+  const info = COMMANDS[currentCommand]
+  const cardOnly = commandForm.cardOnly.checked
+  $('command-desc').textContent = cardOnly ? info.cardDesc(state.slug) : info.desc
+  // 카드 하나만 배포할 땐 다른 카드가 빠질 일이 없어서 --force 가 의미 없다
+  const noForce = cardOnly && currentCommand === 'deploy'
+  if (noForce) commandForm.force.checked = false
+  commandForm.force.disabled = noForce || commandRunning || commandDone
+}
+
 function openCommand(name) {
   const info = COMMANDS[name]
   currentCommand = name
   $('command-title').textContent = info.title
-  $('command-desc').textContent = info.desc
   $('command-force-label').textContent = info.force
   $('command-target').textContent = state.deployTarget ?? '(설정 안 됨)'
   commandForm.reset()
@@ -319,6 +331,11 @@ function openCommand(name) {
   $('command-status').className = 'command-status'
   commandDone = false
   for (const input of commandForm.querySelectorAll('input')) input.disabled = false
+  // 카드를 선택해 둔 상태면 기본으로 그 카드만 대상으로 한다
+  $('command-card-option').hidden = !state.slug
+  $('command-card-label').textContent = `${state.slug} 카드만`
+  commandForm.cardOnly.checked = Boolean(state.slug)
+  syncCommandOptions()
   $('command-run').textContent = '실행'
   $('command-close').hidden = false
   $('command-run').disabled = !state.deployTarget
@@ -348,12 +365,17 @@ function setCommandRunning(running) {
   $('command-run').disabled = running
   $('command-close').disabled = running
   for (const input of commandForm.querySelectorAll('input')) input.disabled = running
+  if (!running) syncCommandOptions()
   for (const button of document.querySelectorAll('[data-command]')) button.disabled = running
 }
 
 async function runCommand() {
   const name = currentCommand
-  const options = { dryRun: commandForm.dryRun.checked, force: commandForm.force.checked }
+  const options = {
+    dryRun: commandForm.dryRun.checked,
+    force: commandForm.force.checked,
+    ...(commandForm.cardOnly.checked && state.slug ? { card: state.slug } : {}),
+  }
   $('command-log').hidden = false
   $('command-log').replaceChildren()
   $('command-status').className = 'command-status'
@@ -405,6 +427,7 @@ async function runCommand() {
 for (const button of document.querySelectorAll('[data-command]')) {
   button.addEventListener('click', () => openCommand(button.dataset.command))
 }
+commandForm.cardOnly.addEventListener('change', syncCommandOptions)
 $('command-run').addEventListener('click', () => (commandDone ? $('command-dialog').close() : runCommand()))
 // 실행 중에는 Esc 로 닫히지 않게 (닫아도 명령은 계속 돌지만 결과를 놓친다)
 $('command-dialog').addEventListener('cancel', (e) => {

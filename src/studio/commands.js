@@ -1,5 +1,6 @@
 import { spawn } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
+import { SLUG_PATTERN } from '../config.js'
 
 const CLI_PATH = fileURLToPath(new URL('../cli.js', import.meta.url))
 
@@ -24,6 +25,13 @@ export function createCommandRunner() {
     if (running) return { status: 409, body: { errors: [`이미 실행 중인 명령이 있어요: ${running}`] } }
 
     const flags = allowed.filter((key) => options?.[key] === true).map((key) => FLAGS[key])
+    // 카드 하나만 대상으로 할 때
+    if (options?.card != null) {
+      if (typeof options.card !== 'string' || !SLUG_PATTERN.test(options.card)) {
+        return { status: 400, body: { errors: [`카드 이름이 이상해요: ${options.card}`] } }
+      }
+      flags.push('--card', options.card)
+    }
     running = name
     console.log(`[studio] ${name} ${flags.join(' ')}`.trimEnd())
 

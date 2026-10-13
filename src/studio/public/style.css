@@ -499,6 +499,10 @@ main {
   gap: 6px;
 }
 
+.command-options label[hidden] {
+  display: none;
+}
+
 .command-log {
   max-height: 50vh;
   margin: 0 0 12px;

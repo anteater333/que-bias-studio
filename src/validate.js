@@ -107,6 +107,12 @@ export function listSlugs(contentDir) {
     .sort()
 }
 
+function printResult(slug, result) {
+  console.log(`${result.errors.length ? '✗' : '✓'} ${slug}`)
+  for (const e of result.errors) console.log(`    [error] ${e}`)
+  for (const w of result.warnings) console.log(`    [warn]  ${w}`)
+}
+
 /** 전체 카드를 검사하고 결과를 출력한다. 에러가 하나라도 있으면 false. */
 export function validateAll(contentDir) {
   const slugs = listSlugs(contentDir)
@@ -120,11 +126,16 @@ export function validateAll(contentDir) {
   for (const slug of slugs) {
     const result = validateCard(contentDir, slug)
     results.push({ slug, ...result })
-    const mark = result.errors.length ? '✗' : '✓'
-    console.log(`${mark} ${slug}`)
-    for (const e of result.errors) console.log(`    [error] ${e}`)
-    for (const w of result.warnings) console.log(`    [warn]  ${w}`)
+    printResult(slug, result)
     if (result.errors.length) ok = false
   }
   return { ok, results }
+}
+
+/** 카드 하나만 검사하고 결과를 출력한다. */
+export function validateOne(contentDir, slug) {
+  if (!listSlugs(contentDir).includes(slug)) throw new Error(`로컬에 ${slug} 카드 폴더가 없어요.`)
+  const result = validateCard(contentDir, slug)
+  printResult(slug, result)
+  return { ok: !result.errors.length, ...result }
 }
